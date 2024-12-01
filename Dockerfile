@@ -1,0 +1,1 @@
+FROM airflowbook/airflow-pipeline:latest
