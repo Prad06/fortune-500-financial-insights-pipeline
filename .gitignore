@@ -1,0 +1,62 @@
+# Docker
+*.log
+*.tmp
+*.pid
+*.swp
+*.swo
+*.bak
+*.orig
+*.rej
+*.sublime-project
+*.sublime-workspace
+*.DS_Store
+*.vscode/
+*.idea/
+*.env
+.env.*
+
+# Terraform
+*.tfstate
+*.tfstate.*
+*.terraform/
+crash.log
+override.tf
+override.tf.json
+terraform.tfvars
+terraform.tfvars.json
+*.tfplan
+
+# GCP
+*.json
+*.p12
+*.pem
+
+# Kafka
+logs/
+data/
+tmp/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.egg
+*.egg-info/
+dist/
+build/
+*.egg-info/
+*.eggs/
+*.manifest
+*.spec
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Data folders
+data/
