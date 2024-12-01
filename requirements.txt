@@ -1,0 +1,8 @@
+pyspark
+apache-airflow-providers-google
+fsspec
+gcsfs
+requests
+pyarrow
+bs4
+html5lib
