@@ -32,3 +32,22 @@ RUN DOWNLOAD_URL="https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/goo
        --quiet \
     && rm -rf "${TMP_DIR}" \
     && gcloud --version
+
+USER airflow
+
+COPY requirements.txt .
+
+RUN pip install --upgrade pip
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir pandas sqlalchemy psycopg2-binary
+
+# # COPY code ./code
+# COPY csv ./csv
+# #creates a folder in the airflow directory in docker
+
+SHELL ["/bin/bash", "-o", "pipefail", "-e", "-u", "-x", "-c"]
+
+
+WORKDIR $AIRFLOW_HOME
+
+USER $AIRFLOW_UID
