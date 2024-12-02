@@ -1,6 +1,9 @@
 # Change these variables
 variable "project" {
   default = "fortune-500-de-project"
+  locals {
+    data_lake_bucket = "dtc_data_lake"
+  }
 }
 
 variable "region" {

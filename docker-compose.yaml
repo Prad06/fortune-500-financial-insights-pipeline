@@ -14,6 +14,7 @@ x-airflow-common: &airflow-common
     # Nice to have, Not necessary
     GCP_PROJECT_ID: "fortune-500-de-project"
     GCP_GCS_BUCKET: "finance-data-lake_fortune-500-de-project"
+
   volumes:
     - ./code/airflow/dags:/opt/airflow/dags
     - ./code/airflow/logs:/opt/airflow/logs
