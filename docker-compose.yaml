@@ -13,13 +13,14 @@ x-airflow-common: &airflow-common
     AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT: "google-cloud-platform://?extra__google_cloud_platform__key_path=/.google/credentials/google_credentials.json"
     # Nice to have, Not necessary
     GCP_PROJECT_ID: "fortune-500-de-project"
-    GCP_GCS_BUCKET: "fortune-500-de-project"
+    GCP_GCS_BUCKET: "finance-data-lake_fortune-500-de-project"
+
   volumes:
     - ./code/airflow/dags:/opt/airflow/dags
     - ./code/airflow/logs:/opt/airflow/logs
     - ./code/airflow/plugins:/opt/airflow/plugins
     # GCLOUD Authentication
-    - ~/.google/credentials/:/.google/credentials:ro
+    - ./.google/credentials/:/.google/credentials:ro
   user: "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-50000}"
   depends_on:
     postgres:
