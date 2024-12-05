@@ -36,14 +36,13 @@ RUN DOWNLOAD_URL="https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/goo
 USER airflow
 
 COPY requirements.txt .
+COPY stock_list.csv /opt/airflow/stock_list.csv
+
 
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir pandas sqlalchemy psycopg2-binary
 
-# # COPY code ./code
-# COPY csv ./csv
-# #creates a folder in the airflow directory in docker
 
 SHELL ["/bin/bash", "-o", "pipefail", "-e", "-u", "-x", "-c"]
 

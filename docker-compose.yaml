@@ -19,6 +19,7 @@ x-airflow-common: &airflow-common
     - ./code/airflow/dags:/opt/airflow/dags
     - ./code/airflow/logs:/opt/airflow/logs
     - ./code/airflow/plugins:/opt/airflow/plugins
+    - ./stock_list.csv:/opt/airflow/stock_list.csv
     # GCLOUD Authentication
     - ./.google/credentials/:/.google/credentials:ro
   user: "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-50000}"

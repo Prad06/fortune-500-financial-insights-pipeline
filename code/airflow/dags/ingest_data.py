@@ -1,14 +1,13 @@
 import logging
 import os
+import zipfile
 
+import pandas as pd
 import pyarrow.csv as pv
 import pyarrow.parquet as pq
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
-from airflow.providers.google.cloud.operators.bigquery import (
-    BigQueryCreateExternalTableOperator,
-)
 from airflow.utils.dates import days_ago
 from google.cloud import storage
 
@@ -17,13 +16,22 @@ BUCKET = os.environ.get("GCP_GCS_BUCKET")
 
 print(f"BUCKET: {BUCKET}")
 
+def get_file_names_from_csv(csv_path):
+    df = pd.read_csv(csv_path)
+    tickers = df["Ticker"].tolist()  # Extract tickers
+    return [f"{ticker.lower()}.us.txt" for ticker in tickers]
+
+
 dataset_file = "historical_stock_prices-kaggle.zip"
 dataset_url = "https://www.kaggle.com/api/v1/datasets/download/borismarjanovic/price-volume-data-for-all-us-stocks-etfs"
 path_to_local_home = os.environ.get("AIRFLOW_HOME", "/opt/airflow/")
+unzipped_dir = f"{path_to_local_home}/unzipped"
+target_dir = "raw/kaggle"
+selected_files = get_file_names_from_csv(f"{path_to_local_home}/stock_list.csv")
 
 
 # NOTE: takes 20 mins, at an upload speed of 800kbps. Faster if your internet has a better upload speed
-def upload_to_gcs(bucket, object_name, local_file):
+def upload_to_gcs(bucket, object_name, selected_files, src_dir, target_dir):
     """
     Ref: https://cloud.google.com/storage/docs/uploading-objects#storage-upload-object-python
     :param bucket: GCS bucket name
@@ -40,8 +48,21 @@ def upload_to_gcs(bucket, object_name, local_file):
     client = storage.Client()
     bucket = client.bucket(bucket)
 
-    blob = bucket.blob(object_name)
-    blob.upload_from_filename(local_file)
+    for file_name in selected_files:
+        local_file_path = os.path.join(src_dir, file_name)
+        if os.path.exists(local_file_path):
+            object_name = f"{target_dir}/{file_name}"
+            blob = bucket.blob(object_name)
+            blob.upload_from_filename(local_file_path)
+            print(f"Uploaded {file_name} to gs://{bucket.name}/{object_name}")
+
+
+def unzip_file(zip_path, extract_to):
+    if not os.path.exists(extract_to):
+        os.makedirs(extract_to)
+    with zipfile.ZipFile(zip_path, "r") as zip_ref:
+        zip_ref.extractall(extract_to)
+    logging.info(f"Extracted files to {extract_to}")
 
 
 default_args = {
@@ -54,55 +75,46 @@ default_args = {
 # NOTE: DAG declaration - using a Context Manager (an implicit way)
 with DAG(
     dag_id="data_ingestion_gcs_dag_part2",
-    schedule_interval="@daily",
+    schedule_interval="@once",
     default_args=default_args,
     catchup=False,
     max_active_runs=1,
-    tags=["dtc-de"],
+    tags=["historical", "gcs", "data-load"],
 ) as dag:
 
+    # Task 1: Download the dataset
     download_dataset_task = BashOperator(
         task_id="download_dataset_task",
         bash_command=f"curl -sSL {dataset_url} > {path_to_local_home}/{dataset_file} && ls -l {path_to_local_home}/{dataset_file}",
     )
 
-    echo_task = BashOperator(
-        task_id="echo_task",
-        bash_command="echo 'Hello, World!'",
+    # Task 2: Unzip the dataset
+    unzip_task = PythonOperator(
+        task_id="unzip_task",
+        python_callable=unzip_file,
+        op_kwargs={
+            "zip_path": f"{path_to_local_home}/{dataset_file}",
+            "extract_to": unzipped_dir,
+        },
     )
 
-    # format_to_parquet_task = PythonOperator(
-    #     task_id="format_to_parquet_task",
-    #     python_callable=format_to_parquet,
-    #     op_kwargs={
-    #         "src_file": f"{path_to_local_home}/{dataset_file}",
-    #     },
-    # )
+    # Task 3: Echo Task
+    echo_task = BashOperator(
+        task_id="echo_task",
+        bash_command="echo 'File Downloaded and Unzipped!'",
+    )
 
-    # # TODO: Homework - research and try XCOM to communicate output values between 2 tasks/operators
+    # Task 4: Upload the dataset to GCS
     local_to_gcs_task = PythonOperator(
         task_id="local_to_gcs_task",
         python_callable=upload_to_gcs,
         op_kwargs={
             "bucket": BUCKET,
-            "object_name": f"raw/{dataset_file}",
-            "local_file": f"{path_to_local_home}/{dataset_file}",
+            "object_name": f"{target_dir}/{dataset_file}",
+            "selected_files": selected_files,
+            "src_dir": f"{unzipped_dir}/Data/Stocks",
+            "target_dir": f"{target_dir}",
         },
     )
 
-    # bigquery_external_table_task = BigQueryCreateExternalTableOperator(
-    #     task_id="bigquery_external_table_task",
-    #     table_resource={
-    #         "tableReference": {
-    #             "projectId": PROJECT_ID,
-    #             "datasetId": BIGQUERY_DATASET,
-    #             "tableId": "external_table",
-    #         },
-    #         "externalDataConfiguration": {
-    #             "sourceFormat": "PARQUET",
-    #             "sourceUris": [f"gs://{BUCKET}/raw/{parquet_file}"],
-    #         },
-    #     },
-    # )
-
-    (download_dataset_task >> echo_task >> local_to_gcs_task)
+    (download_dataset_task >> unzip_task >> echo_task >> local_to_gcs_task)
