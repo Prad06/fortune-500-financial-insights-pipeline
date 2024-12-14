@@ -95,5 +95,6 @@ airflow-gcloud-init:
 clean:
 	cd ~/fortune-500-financial-insights-pipeline/airflow; docker-compose down --volumes --rmi all
 	cd ~/fortune-500-financial-insights-pipeline/terraform; terraform destroy
+
 vm-down:
 	@gcloud compute instances delete ${GCP_VM} --zone ${GCP_ZONE}
