@@ -44,7 +44,7 @@ gcloud-initialize:
 #@gcloud services enable compute.googleapis.com
 
 # Create Service Account
-	@gcloud iam service-accounts create ${GCP_SERVICE_ACCOUNT_USER} --description="Service account for NFL project" --display-name="${GCP_SERVICE_ACCOUNT_USER}"
+	@gcloud iam service-accounts create ${GCP_SERVICE_ACCOUNT_USER} --description="Service account for Finance project" --display-name="${GCP_SERVICE_ACCOUNT_USER}"
 
 # Add roles
 	@gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} --member="serviceAccount:${GCP_SERVICE_ACCOUNT_USER}@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
@@ -79,10 +79,10 @@ gcloud-initialize:
 
 
 terraform-infra: 
-	cd ~/nfl_project/terraform; terraform init; terraform plan -var="project=${GCP_PROJECT_ID}"; terraform apply -var="project=${GCP_PROJECT_ID}"
+	cd ~/fortune-500-financial-insights-pipeline/terraform; terraform init; terraform plan -var="project=${GCP_PROJECT_ID}"; terraform apply -var="project=${GCP_PROJECT_ID}"
 
 airflow-setup:
-	cd ~/nfl_project/airflow; mkdir -p ./dags ./logs ./plugins; echo -e "AIRFLOW_UID=$$(id -u)" > ./airflow/.env; docker-compose build; docker-compose up -d
+	cd ~/fortune-500-financial-insights-pipeline/airflow; mkdir -p ./dags ./logs ./plugins; echo -e "AIRFLOW_UID=$$(id -u)" > ./airflow/.env; docker-compose build; docker-compose up -d
 
 airflow-gcloud-init:
 # Google credentials variable must be available in the parent session
@@ -93,7 +93,7 @@ airflow-gcloud-init:
 # gcloud auth application-default login
 # port forward and go to localhost:8080 in browser, airflow:airflow
 clean:
-	cd ~/nfl_project/airflow; docker-compose down --volumes --rmi all
-	cd ~/nfl_project/terraform; terraform destroy
+	cd ~/fortune-500-financial-insights-pipeline/airflow; docker-compose down --volumes --rmi all
+	cd ~/fortune-500-financial-insights-pipeline/terraform; terraform destroy
 vm-down:
 	@gcloud compute instances delete ${GCP_VM} --zone ${GCP_ZONE}
