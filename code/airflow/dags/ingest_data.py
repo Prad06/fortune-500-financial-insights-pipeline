@@ -16,6 +16,7 @@ BUCKET = os.environ.get("GCP_GCS_BUCKET")
 
 print(f"BUCKET: {BUCKET}")
 
+
 def get_file_names_from_csv(csv_path):
     df = pd.read_csv(csv_path)
     tickers = df["Ticker"].tolist()  # Extract tickers
