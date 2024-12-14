@@ -7,3 +7,5 @@ pyarrow
 bs4
 html5lib
 pandas
+yfinance
+
