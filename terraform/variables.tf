@@ -1,6 +1,6 @@
 # Change these variables
 variable "project" {
-  default = "fortune-500-de-project"
+  default = "data-engineering-finance"
 }
 
 variable "region" {
@@ -13,12 +13,12 @@ variable "region" {
 variable "service_account" {
   description = "Name of service account"
   type        = string
-  default     = "speakingagentdeproject@fortune-500-de-project.iam.gserviceaccount.com"
+  default     = "speaking-agent-de@data-engineering-finance.iam.gserviceaccount.com"
 }
 
 # Do not change the following
 locals {
-  data_lake_bucket = "finance-data-lake"
+  data_lake_bucket = "finance-raw-ingest"
   dataproc_bucket  = "finance-spark-staging"
 }
 
@@ -36,11 +36,11 @@ variable "storage_class" {
 variable "BQ_DATASET" {
   description = "BigQuery Dataset that raw data (from GCS) will be written to"
   type        = string
-  default     = "nfl_data_all"
+  default     = "finance_data_all"
 }
 
 variable "DATAPROC_CLUSTER" {
   description = "Name of dataproc cluster for spark jobs"
   type        = string
-  default     = "nfl-spark-cluster"
+  default     = "finance-spark-cluster"
 }

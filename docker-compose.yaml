@@ -12,8 +12,8 @@ x-airflow-common: &airflow-common
     GOOGLE_APPLICATION_CREDENTIALS: /.google/credentials/google_credentials.json
     AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT: "google-cloud-platform://?extra__google_cloud_platform__key_path=/.google/credentials/google_credentials.json"
     # Nice to have, Not necessary
-    GCP_PROJECT_ID: "fortune-500-de-project"
-    GCP_GCS_BUCKET: "finance-data-lake_fortune-500-de-project"
+    GCP_PROJECT_ID: "data-engineering-finance"
+    GCP_GCS_BUCKET: "finance-raw-ingest"
 
   volumes:
     - ./code/airflow/dags:/opt/airflow/dags
