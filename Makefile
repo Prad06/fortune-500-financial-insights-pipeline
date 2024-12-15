@@ -33,49 +33,49 @@ terraform-setup:
 	sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com focal main"
 	sudo apt-get update && sudo apt-get install terraform
 
-gcloud-initialize:
-	@gcloud init
-	@mkdir -p ~/.google/credentials/
+# Variables
+GCP_PROJECT_ID := your-project-id
+GCP_SERVICE_ACCOUNT_USER := finance-project-sa
+GCP_CREDENTIALS_DIR := ~/.google/credentials
+GCP_CREDENTIALS_NAME := finance-sa-key.json
 
-# Enable API services
-	@gcloud services enable iam.googleapis.com
-	@gcloud services enable iamcredentials.googleapis.com
-	@gcloud services enable dataproc.googleapis.com
-#@gcloud services enable compute.googleapis.com
+# Helper function to enable APIs
+enable-api:
+	@$(foreach api, iam.googleapis.com iamcredentials.googleapis.com dataproc.googleapis.com, \
+		echo "Enabling API: $(api)" && gcloud services list --enabled | grep -q "$(api)" || gcloud services enable "$(api)";)
 
-# Create Service Account
-	@gcloud iam service-accounts create ${GCP_SERVICE_ACCOUNT_USER} --description="Service account for Finance project" --display-name="${GCP_SERVICE_ACCOUNT_USER}"
+# Create service account
+create-service-account:
+	@echo "Creating service account: $(GCP_SERVICE_ACCOUNT_USER)"
+	@gcloud iam service-accounts create $(GCP_SERVICE_ACCOUNT_USER) \
+		--description="Service account for Finance project" \
+		--display-name="$(GCP_SERVICE_ACCOUNT_USER)"
 
-# Add roles
-	@gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} --member="serviceAccount:${GCP_SERVICE_ACCOUNT_USER}@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
-    --role="roles/viewer"
+# Add roles to the service account
+add-roles:
+	@echo "Adding roles to service account: $(GCP_SERVICE_ACCOUNT_USER)"
+	@$(foreach role, roles/viewer roles/bigquery.admin roles/storage.admin roles/storage.objectAdmin roles/dataproc.worker roles/dataproc.serviceAgent, \
+		echo "Assigning role: $(role)" && \
+		gcloud projects add-iam-policy-binding $(GCP_PROJECT_ID) \
+		--member="serviceAccount:$(GCP_SERVICE_ACCOUNT_USER)@$(GCP_PROJECT_ID).iam.gserviceaccount.com" \
+		--role="$(role)";)
 
-	@gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} --member="serviceAccount:${GCP_SERVICE_ACCOUNT_USER}@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
-    --role="roles/bigquery.admin"
-	
-	@gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} --member="serviceAccount:${GCP_SERVICE_ACCOUNT_USER}@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
-    --role="roles/storage.admin"
-	
-	@gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} --member="serviceAccount:${GCP_SERVICE_ACCOUNT_USER}@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
-	--role="roles/storage.objectAdmin"
+# Download the service account key
+download-key:
+	@echo "Downloading service account key to $(GCP_CREDENTIALS_DIR)/$(GCP_CREDENTIALS_NAME)"
+	@mkdir -p $(GCP_CREDENTIALS_DIR)
+	@gcloud iam service-accounts keys create $(GCP_CREDENTIALS_DIR)/$(GCP_CREDENTIALS_NAME) \
+		--iam-account=$(GCP_SERVICE_ACCOUNT_USER)@$(GCP_PROJECT_ID).iam.gserviceaccount.com
 
-# @gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} --member="serviceAccount:${GCP_SERVICE_ACCOUNT_USER}@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
-# --role="roles/storage.objectCreator"
+# Set default application credentials
+set-credentials:
+	@echo "Setting application default credentials..."
+	@export GOOGLE_APPLICATION_CREDENTIALS="$(GCP_CREDENTIALS_DIR)/$(GCP_CREDENTIALS_NAME)"
+	@echo "Environment variable GOOGLE_APPLICATION_CREDENTIALS set to $(GCP_CREDENTIALS_DIR)/$(GCP_CREDENTIALS_NAME)"
 
-# @gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} --member="serviceAccount:${GCP_SERVICE_ACCOUNT_USER}@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
-# --role="roles/storage.objectViewer"
-
-	@gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} --member="serviceAccount:${GCP_SERVICE_ACCOUNT_USER}@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
-	--role="roles/dataproc.worker"
-
-	@gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} --member="serviceAccount:${GCP_SERVICE_ACCOUNT_USER}@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
-	--role="roles/dataproc.serviceAgent"
-
-# Download the credentials
-	@cd ${GCP_CREDENTIALS_DIR} && gcloud iam service-accounts keys create ${GCP_CREDENTIALS_NAME} --iam-account=${GCP_SERVICE_ACCOUNT_USER}@${GCP_PROJECT_ID}.iam.gserviceaccount.com
-
-# Authenticate the credentials
-	@gcloud auth application-default login
+# Main target to execute all tasks
+setup-gcp: enable-api create-service-account add-roles download-key set-credentials
+	@echo "GCP setup completed successfully."
 
 
 terraform-infra: 
