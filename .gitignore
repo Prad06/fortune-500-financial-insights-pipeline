@@ -103,3 +103,6 @@ terraform.rc
 note.ipynb
 
 ved
+
+# Ignore Raw Data
+raw/

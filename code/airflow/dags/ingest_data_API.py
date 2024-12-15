@@ -15,7 +15,7 @@ from airflow.utils.dates import days_ago
 from google.cloud import storage
 
 PROJECT_ID = os.environ.get("GCP_PROJECT_ID")
-BUCKET = os.environ.get("GCP_GCS_BUCKET")
+BUCKET = os.environ.get("GCP_GCS_BUCKET") + "_" + os.environ.get("GCP_PROJECT_ID")
 
 logging.info(f"BUCKET: {BUCKET}")
 
