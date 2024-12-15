@@ -34,7 +34,7 @@ terraform-setup:
 	sudo apt-get update && sudo apt-get install terraform
 
 # Variables
-GCP_PROJECT_ID := your-project-id
+GCP_PROJECT_ID := data-engineering-finance
 GCP_SERVICE_ACCOUNT_USER := finance-project-sa
 GCP_CREDENTIALS_DIR := ~/.google/credentials
 GCP_CREDENTIALS_NAME := finance-sa-key.json
