@@ -98,3 +98,47 @@ clean:
 
 vm-down:
 	@gcloud compute instances delete ${GCP_VM} --zone ${GCP_ZONE}
+
+gcloud-initialize:
+	@gcloud init
+	@mkdir -p ~/.google/credentials/
+
+# Enable API services
+	@gcloud services enable iam.googleapis.com
+	@gcloud services enable iamcredentials.googleapis.com
+	@gcloud services enable dataproc.googleapis.com
+#@gcloud services enable compute.googleapis.com
+
+# Create Service Account
+	@gcloud iam service-accounts create ${GCP_SERVICE_ACCOUNT_USER} --description="Service account for Finance project" --display-name="${GCP_SERVICE_ACCOUNT_USER}"
+
+# Add roles
+	@gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} --member="serviceAccount:${GCP_SERVICE_ACCOUNT_USER}@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
+    --role="roles/viewer"
+
+	@gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} --member="serviceAccount:${GCP_SERVICE_ACCOUNT_USER}@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
+    --role="roles/bigquery.admin"
+	
+	@gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} --member="serviceAccount:${GCP_SERVICE_ACCOUNT_USER}@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
+    --role="roles/storage.admin"
+	
+	@gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} --member="serviceAccount:${GCP_SERVICE_ACCOUNT_USER}@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
+	--role="roles/storage.objectAdmin"
+
+# @gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} --member="serviceAccount:${GCP_SERVICE_ACCOUNT_USER}@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
+# --role="roles/storage.objectCreator"
+
+# @gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} --member="serviceAccount:${GCP_SERVICE_ACCOUNT_USER}@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
+# --role="roles/storage.objectViewer"
+
+	@gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} --member="serviceAccount:${GCP_SERVICE_ACCOUNT_USER}@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
+	--role="roles/dataproc.worker"
+
+	@gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} --member="serviceAccount:${GCP_SERVICE_ACCOUNT_USER}@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
+	--role="roles/dataproc.serviceAgent"
+
+# Download the credentials
+	@cd ${GCP_CREDENTIALS_DIR} && gcloud iam service-accounts keys create ${GCP_CREDENTIALS_NAME} --iam-account=${GCP_SERVICE_ACCOUNT_USER}@${GCP_PROJECT_ID}.iam.gserviceaccount.com
+
+# Authenticate the credentials
+	@gcloud auth application-default login
