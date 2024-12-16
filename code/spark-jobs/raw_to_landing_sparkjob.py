@@ -170,6 +170,7 @@ if final_df_list:
 
     # Write combined data to the landing bucket using INSERT OVERWRITE
     combined_final_df.write \
+
         .partitionBy("year") \
         .mode("overwrite") \
         .parquet(f"gs://{GCP_LANDING_BUCKET}/stock_data/")
