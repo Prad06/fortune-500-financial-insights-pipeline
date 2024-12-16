@@ -12,7 +12,8 @@ from airflow.utils.dates import days_ago
 from google.cloud import storage
 
 PROJECT_ID = os.environ.get("GCP_PROJECT_ID")
-BUCKET = os.environ.get("GCP_GCS_BUCKET") + "_" + os.environ.get("GCP_PROJECT_ID")
+BUCKET = os.environ.get("GCP_GCS_RAW_BUCKET") + "_" + os.environ.get("GCP_PROJECT_ID")
+
 
 print(f"BUCKET: {BUCKET}")
 
@@ -75,7 +76,7 @@ default_args = {
 
 # NOTE: DAG declaration - using a Context Manager (an implicit way)
 with DAG(
-    dag_id="data_ingestion_gcs_dag_part2",
+    dag_id="Data_Ingestion_Kaggle",
     schedule_interval="@once",
     default_args=default_args,
     catchup=False,
