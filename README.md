@@ -1,1 +1,1 @@
-Data Pipeline using Kafka, Airflow, Spark and Tableau
+Data Pipeline using Airflow, Spark and Tableau
