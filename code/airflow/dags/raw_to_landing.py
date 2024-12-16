@@ -1,110 +1,98 @@
-import datetime as dt
-import logging
 import os
-
+import logging
 from airflow import DAG
-from airflow.operators.python import PythonOperator
+from airflow.providers.google.cloud.operators.gcs import GCSCreateBucketOperator, GCSToGCSOperator
+from airflow.providers.google.cloud.transfers.local_to_gcs import LocalFilesystemToGCSOperator
+from airflow.providers.google.cloud.operators.dataproc import DataprocSubmitJobOperator
+from airflow.providers.google.cloud.operators.bigquery import BigQueryInsertJobOperator
 from airflow.utils.dates import days_ago
-from google.cloud import storage
-from pyspark.sql import SparkSession
 
-# Initialize Spark session
-spark = SparkSession.builder \
-    .appName("RawToStagingSpark") \
-    .getOrCreate()
-
-PROJECT_ID = os.environ.get("GCP_PROJECT_ID")
-BUCKET = os.environ.get("GCP_GCS_BUCKET") + "_" + os.environ.get("GCP_PROJECT_ID")
-
+# Initialize logging
+logging.basicConfig(level=logging.INFO)
 logging.info(f"BUCKET: {BUCKET}")
 
+PROJECT_ID = os.environ.get("GCP_PROJECT_ID")
+RAW_BUCKET = os.environ.get("GCP_GCS_RAW_BUCKET") + "_" + os.environ.get("GCP_PROJECT_ID")
+LANDING_BUCKET = os.environ.get("GCP_GCS_STAGING_BUCKET") + os.environ.get("GCP_PROJECT_ID")
+BQ_DATASET = os.environ.get("GCP_BQ_DATASET")
+LOCAL_CSV_PATH = os.environ.get("LOCAL_CSV_PATH")
+LOCAL_SPARK_PATH = os.environ.get("LOCAL_SPARK_PATH")
 
-def process_raw_data_with_spark(raw_dir, staging_dir):
-    logging.info(f"Processing raw data with Spark from directory: {raw_dir}")
-    
-    # Read all CSV and JSON files from raw_dir
-    csv_files = [os.path.join(raw_dir, f) for f in os.listdir(raw_dir) if f.endswith(".csv")]
-    json_files = [os.path.join(raw_dir, f) for f in os.listdir(raw_dir) if f.endswith(".json")]
-    
-    all_files = csv_files + json_files
-    
-    # Read data with Spark
-    df = spark.read.option("header", "true").csv(csv_files) if csv_files else None
-    if json_files:
-        df_json = spark.read.json(json_files)
-        if df is not None:
-            df = df.union(df_json)
-        else:
-            df = df_json
-    
-    # Perform transformations if needed, for example adding a timestamp
-    df = df.withColumn("timestamp", spark.sql.functions.current_timestamp())
-
-    # Write the processed data to staging directory in Parquet format
-    df.write.mode("overwrite").parquet(staging_dir)
-    logging.info(f"Processed data written to staging directory: {staging_dir}")
-
-
-def upload_processed_data_to_gcs(bucket, src_dir, target_dir):
-    logging.info(f"Uploading processed data from {src_dir} to GCS bucket {bucket}")
-    storage.blob._MAX_MULTIPART_SIZE = 5 * 1024 * 1024  # 5 MB
-    storage.blob._DEFAULT_CHUNKSIZE = 5 * 1024 * 1024  # 5 MB
-
-    client = storage.Client()
-    bucket = client.bucket(bucket)
-
-    if os.path.exists(src_dir):
-        for root, _, files in os.walk(src_dir):
-            for file_name in files:
-                local_file_path = os.path.join(root, file_name)
-                relative_path = os.path.relpath(local_file_path, src_dir)
-                subfolder = os.path.dirname(relative_path)
-                gcs_path = os.path.join(target_dir, subfolder, file_name)
-
-                blob = bucket.blob(gcs_path)
-                blob.upload_from_filename(local_file_path)
-
-                logging.info(
-                    f"Uploaded {local_file_path} to gs://{bucket.name}/{gcs_path}"
-                )
-
-
+# Define default arguments
 default_args = {
     "owner": "airflow",
-    "start_date": days_ago(1),
     "depends_on_past": False,
+    "email_on_failure": False,
+    "email_on_retry": False,
     "retries": 1,
 }
 
+# Initialize DAG
 with DAG(
-    dag_id="spark_raw_to_staging_dag",
-    schedule_interval="@once",
+    "Transform_Open_Close_Data",
     default_args=default_args,
+    description="A pipeline to process financial data and load into BigQuery",
+    schedule_interval=None,  # Can be set to a cron schedule if needed
+    start_date=days_ago(1),
     catchup=False,
-    max_active_runs=1,
-    tags=["stocks", "financial-data", "yfinance"],
 ) as dag:
+    logger.info("DAG initialized")
 
-    raw_dir = f"{path_to_local_home}/data_raw"
-    staging_dir = f"{path_to_local_home}/data_staging"
-
-    # Task to process the raw data using Spark
-    process_raw_data_task = PythonOperator(
-        task_id="process_raw_data_with_spark",
-        python_callable=process_raw_data_with_spark,
-        op_kwargs={"raw_dir": raw_dir, "staging_dir": staging_dir},
+    # Step 1: Upload stock_list.csv to GCS
+    upload_csv_to_gcs = LocalFilesystemToGCSOperator(
+        task_id="upload_csv_to_gcs",
+        src=f"{LOCAL_CSV_PATH}/stock_list.csv",
+        dst="csv/stock_list.csv",
+        bucket=f"{RAW_BUCKET}",
     )
+    logger.info("Task upload_csv_to_gcs created")
 
-    # Task to upload processed data to GCS
-    upload_task = PythonOperator(
-        task_id="upload_processed_data_to_gcs",
-        python_callable=upload_processed_data_to_gcs,
-        op_kwargs={
-            "bucket": BUCKET,
-            "src_dir": staging_dir,
-            "target_dir": "staging/api/",
+    # Step 2: Upload PySpark script to GCS
+    upload_script_to_gcs = LocalFilesystemToGCSOperator(
+        task_id="upload_script_to_gcs",
+        src=f"{LOCAL_SPARK_PATH}/raw_to_landing_sparkjob.py",
+        dst="scripts/raw_to_landing_sparkjob.py",
+        bucket=f"{LANDING_BUCKET}",
+    )
+    logger.info("Task upload_script_to_gcs created")
+
+    # Step 3: Submit PySpark job to Dataproc
+    dataproc_job_config = {
+        "reference": {"project_id": f"{PROJECT_ID}"},
+        "placement": {"cluster_name": "finance-spark-cluster"},
+        "pyspark_job": {
+            "main_python_file_uri": f"gs://{LANDING_BUCKET}/scripts/raw_to_landing_sparkjob.py",
+        },
+    }
+
+    submit_dataproc_job = DataprocSubmitJobOperator(
+        task_id="submit_dataproc_job",
+        job=dataproc_job_config,
+        region="us-east1",
+        project_id=f"{PROJECT_ID}",
+    )
+    logger.info("Task submit_dataproc_job created")
+
+    # Step 4: Run BigQuery Load Job
+    bq_load_job = BigQueryInsertJobOperator(
+        task_id="bq_load_job",
+        configuration={
+            "load": {
+                "sourceUris": [
+                    f"gs://{LANDING_BUCKET}/stock_data/year=*"
+                ],
+                "destinationTable": {
+                    "projectId": f"{PROJECT_ID}",
+                    "datasetId": f"{BQ_DATASET}",
+                    "tableId": "open_close",
+                },
+                "sourceFormat": "PARQUET",
+                "autodetect": True,
+            }
         },
     )
+    logger.info("Task bq_load_job created")
 
-    # Task dependencies
-    process_raw_data_task >> upload_task
+    # Define task dependencies
+    [upload_csv_to_gcs, upload_script_to_gcs] >> submit_dataproc_job >> bq_load_job
+    logger.info("Task dependencies set")

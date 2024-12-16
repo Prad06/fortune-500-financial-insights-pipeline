@@ -15,7 +15,7 @@ from airflow.utils.dates import days_ago
 from google.cloud import storage
 
 PROJECT_ID = os.environ.get("GCP_PROJECT_ID")
-BUCKET = os.environ.get("GCP_GCS_BUCKET") + "_" + os.environ.get("GCP_PROJECT_ID")
+BUCKET = os.environ.get("GCP_GCS_RAW_BUCKET") + "_" + os.environ.get("GCP_PROJECT_ID")
 
 logging.info(f"BUCKET: {BUCKET}")
 
@@ -172,7 +172,7 @@ default_args = {
 }
 
 with DAG(
-    dag_id="stock_data_ingestion_dag",
+    dag_id="Data_API_Ingestion",
     schedule_interval="@once",
     default_args=default_args,
     catchup=False,

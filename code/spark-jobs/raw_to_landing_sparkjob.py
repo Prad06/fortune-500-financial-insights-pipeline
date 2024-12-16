@@ -1,6 +1,6 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StructField, StringType, DoubleType, DateType
-from pyspark.sql.functions import lit, col, to_date, year, regexp_replace, row
+from pyspark.sql.functions import lit, col, to_date, year, regexp_replace, row_number
 from pyspark.sql.window import Window
 import pandas as pd
 
@@ -170,7 +170,7 @@ if final_df_list:
 
     # Write combined data to the landing bucket using INSERT OVERWRITE
     combined_final_df.write \
-        .partitionBy("Ticker", "year") \
+        .partitionBy("year") \
         .mode("overwrite") \
         .parquet(f"gs://{GCP_LANDING_BUCKET}/stock_data/")
     print("Final data written successfully")
@@ -178,3 +178,24 @@ else:
     print("No data to write")
 
 spark.stop()
+
+# gcloud Initialization Steps
+# gcloud auth login
+# gcloud config set project data-engineering-finance
+# gcloud config set compute/zone us
+# gcloud config set compute/region us-east1
+
+# Copy the file from local to gcloud storage
+# gsutil cp stock_list.csv gs://finance-raw-ingest_data-engineering-finance/csv/stock_list.csv
+# gsutil cp ./code/spark-jobs/raw_to_landing_sparkjob.py gs://finance-raw-ingest_data-engineering-finance/scripts/raw_to_landing_sparkjob.py
+
+# Run the Spark Job on Dataproc
+# gcloud dataproc jobs submit pyspark \
+#   --cluster=finance-spark-cluster \
+#   --region=us-east1 \
+#   gs://finance-raw-ingest_data-engineering-finance/scripts/raw_to_landing_sparkjob.py
+
+# Run the job
+# bq load --source_format=PARQUET \
+#   data-engineering-finance:finance_data_all.open_close_3 \
+#   gs://finance-spark-staging_data-engineering-finance/stock_data/year=*
