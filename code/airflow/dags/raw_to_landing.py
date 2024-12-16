@@ -17,6 +17,7 @@ LOCAL_SPARK_PATH = f"{path_to_local_home}/spark-jobs"
 logging.info(f"RAW_BUCKET: {RAW_BUCKET}")
 logging.info(f"LANDING_BUCKET: {LANDING_BUCKET}")
 
+
 # Define default arguments
 default_args = {
     "owner": "airflow",
@@ -37,9 +38,11 @@ with DAG(
 ) as dag:
     logging.info("DAG initialized")
 
+
     # Step 1: Upload stock_list.csv to GCS
     upload_csv_to_gcs = LocalFilesystemToGCSOperator(
         task_id="upload_csv_to_gcs",
+
         src=f"{LOCAL_CSV_PATH}",
         dst="csv/stock_list.csv",
         bucket=f"{RAW_BUCKET}",
