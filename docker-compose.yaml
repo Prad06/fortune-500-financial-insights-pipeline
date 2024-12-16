@@ -15,11 +15,12 @@ x-airflow-common: &airflow-common
     GCP_PROJECT_ID: "data-engineering-finance"
     GCP_GCS_RAW_BUCKET: "finance-raw-ingest"
     GCP_GCS_STAGING_BUCKET: "finance-spark-staging"
-    BQ_DATASET_NAME: "finance_data_all"
+    GCP_BQ_DATASET: "finance_data_all"
 
   volumes:
     - ./code/airflow/dags:/opt/airflow/dags
     - ./code/airflow/logs:/opt/airflow/logs
+    - ./code/spark-jobs:/opt/airflow/spark-jobs
     - ./code/airflow/plugins:/opt/airflow/plugins
     - ./stock_list.csv:/opt/airflow/stock_list.csv
     # GCLOUD Authentication

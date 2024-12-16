@@ -37,6 +37,7 @@ USER airflow
 
 COPY requirements.txt .
 COPY stock_list.csv /opt/airflow/stock_list.csv
+COPY ./code/spark-jobs/raw_to_staging.py /opt/airflow/spark-jobs/raw_to_staging.py
 
 
 RUN pip install --upgrade pip
