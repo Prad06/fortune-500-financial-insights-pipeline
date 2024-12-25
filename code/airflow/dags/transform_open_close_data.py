@@ -1,14 +1,21 @@
-import os
 import logging
+import os
+
 from airflow import DAG
-from airflow.providers.google.cloud.transfers.local_to_gcs import LocalFilesystemToGCSOperator
-from airflow.providers.google.cloud.operators.dataproc import DataprocSubmitJobOperator
 from airflow.providers.google.cloud.operators.bigquery import BigQueryInsertJobOperator
+from airflow.providers.google.cloud.operators.dataproc import DataprocSubmitJobOperator
+from airflow.providers.google.cloud.transfers.local_to_gcs import (
+    LocalFilesystemToGCSOperator,
+)
 from airflow.utils.dates import days_ago
 
 PROJECT_ID = os.environ.get("GCP_PROJECT_ID")
-RAW_BUCKET = os.environ.get("GCP_GCS_RAW_BUCKET") + "_" + os.environ.get("GCP_PROJECT_ID")
-LANDING_BUCKET = os.environ.get("GCP_GCS_STAGING_BUCKET") + os.environ.get("GCP_PROJECT_ID")
+RAW_BUCKET = (
+    os.environ.get("GCP_GCS_RAW_BUCKET") + "_" + os.environ.get("GCP_PROJECT_ID")
+)
+LANDING_BUCKET = os.environ.get("GCP_GCS_STAGING_BUCKET") + os.environ.get(
+    "GCP_PROJECT_ID"
+)
 BQ_DATASET = os.environ.get("GCP_BQ_DATASET")
 path_to_local_home = os.environ.get("AIRFLOW_HOME", "/opt/airflow/")
 LOCAL_CSV_PATH = f"{path_to_local_home}/stock_list.csv"
@@ -38,11 +45,9 @@ with DAG(
 ) as dag:
     logging.info("DAG initialized")
 
-
     # Step 1: Upload stock_list.csv to GCS
     upload_csv_to_gcs = LocalFilesystemToGCSOperator(
         task_id="upload_csv_to_gcs",
-
         src=f"{LOCAL_CSV_PATH}",
         dst="csv/stock_list.csv",
         bucket=f"{RAW_BUCKET}",
@@ -80,9 +85,7 @@ with DAG(
         task_id="bq_load_job",
         configuration={
             "load": {
-                "sourceUris": [
-                    f"gs://{LANDING_BUCKET}/stock_data/year=*"
-                ],
+                "sourceUris": [f"gs://{LANDING_BUCKET}/stock_data/year=*"],
                 "destinationTable": {
                     "projectId": f"{PROJECT_ID}",
                     "datasetId": f"{BQ_DATASET}",
