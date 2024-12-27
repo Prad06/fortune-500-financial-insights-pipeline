@@ -169,7 +169,7 @@ default_args = {
     "owner": "airflow",
     "start_date": days_ago(1),
     "depends_on_past": False,
-    "retries": 1,
+    "retries": 10,
 }
 
 with DAG(
