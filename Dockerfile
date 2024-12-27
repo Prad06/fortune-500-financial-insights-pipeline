@@ -38,7 +38,8 @@ USER airflow
 COPY requirements.txt .
 COPY stock_list.csv /opt/airflow/stock_list.csv
 COPY ./code/spark-jobs/raw_to_staging.py /opt/airflow/spark-jobs/raw_to_staging.py
-
+COPY ./code/scripts/transform_and_copy_to_landing_info.py /opt/airflow/spark-jobs/transform_and_copy_to_landing_info.py
+COPY ./code/scripts/transform_and_copy_to_landing_sustainability.py /opt/airflow/spark-jobs/transform_and_copy_to_landing_sustainability.py
 
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
