@@ -13,8 +13,8 @@ PROJECT_ID = os.environ.get("GCP_PROJECT_ID")
 RAW_BUCKET = (
     os.environ.get("GCP_GCS_RAW_BUCKET") + "_" + os.environ.get("GCP_PROJECT_ID")
 )
-LANDING_BUCKET = os.environ.get("GCP_GCS_STAGING_BUCKET") + os.environ.get(
-    "GCP_PROJECT_ID"
+LANDING_BUCKET = (
+    os.environ.get("GCP_GCS_STAGING_BUCKET") + "_" + os.environ.get("GCP_PROJECT_ID")
 )
 BQ_DATASET = os.environ.get("GCP_BQ_DATASET")
 path_to_local_home = os.environ.get("AIRFLOW_HOME", "/opt/airflow/")
