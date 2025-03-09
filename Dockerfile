@@ -42,6 +42,7 @@ COPY ./code/scripts/transform_and_copy_to_landing_info.py /opt/airflow/spark-job
 COPY ./code/scripts/transform_and_copy_to_landing_sustainability.py /opt/airflow/spark-jobs/transform_and_copy_to_landing_sustainability.py
 COPY ./code/scripts/transform_job_tabular_entitities.py /opt/airflow/spark-jobs/transform_job_tabular_entitities.py
 
+
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir pandas sqlalchemy psycopg2-binary
