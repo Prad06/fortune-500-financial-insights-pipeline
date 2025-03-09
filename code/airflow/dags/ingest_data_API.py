@@ -39,7 +39,7 @@ def download_stock_data(ticker, **kwargs):
     logging.info(f"Starting download for ticker: {ticker}")
     # Configuration
     last_date_from_historical_load = dt.date(2017, 11, 10)
-    end_date_for_historical_load_from_api = dt.date(2024, 12, 1)
+    end_date_for_historical_load_from_api = dt.date(2024, 12, 29)
 
     # Initialize Ticker
     stock = yf.Ticker(ticker)
